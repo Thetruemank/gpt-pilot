@@ -154,6 +154,8 @@ class Telemetry:
                 "large_requests": None,
                 # Statistics for slow requests
                 "slow_requests": None,
+                # Number of tokens used for LLM requests
+                "num_llm_tokens": 0,
             }
         )
         self.start_time = None

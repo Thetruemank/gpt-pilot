@@ -56,9 +56,6 @@ class Orchestrator(BaseAgent):
         await self.init_ui()
         await self.offline_changes_check()
 
-        # TODO: consider refactoring this into two loop; the outer with one iteration per comitted step,
-        # and the inner which runs the agents for the current step until they're done. This would simplify
-        # handle_done() and let us do other per-step processing (eg. describing files) in between agent runs.
         while True:
             await self.update_stats()
 
@@ -74,7 +71,6 @@ class Orchestrator(BaseAgent):
                 response = await self.handle_done(agent, response)
                 continue
 
-        # TODO: rollback changes to "next" so they aren't accidentally committed?
         return True
 
     async def offline_changes_check(self):
@@ -89,8 +85,6 @@ class Orchestrator(BaseAgent):
         modified_files = await self.state_manager.get_modified_files()
 
         if self.state_manager.workspace_is_empty():
-            # NOTE: this will currently get triggered on a new project, but will do
-            # nothing as there's no files in the database.
             log.info("Detected empty workspace, restoring state from the database.")
             await self.state_manager.restore_files()
         elif modified_files:
@@ -148,12 +142,8 @@ class Orchestrator(BaseAgent):
         )
         await self.state_manager.commit()
 
-        # If there are any new or modified files changed outside Pythagora,
-        # this is a good time to add them to the project. If any of them have
-        # INPUT_REQUIRED, we'll first ask the user to provide the required input.
         import_files_response = await self.import_files()
 
-        # If any of the files are missing metadata/descriptions, those need to be filled-in
         missing_descriptions = [file.path for file in self.current_state.files if not file.meta.get("description")]
         if missing_descriptions:
             log.debug(f"Some files are missing descriptions: {', '.join(missing_descriptions)}, requesting analysis")
@@ -174,7 +164,6 @@ class Orchestrator(BaseAgent):
             if prev_response.type == ResponseType.DESCRIBE_FILES:
                 return CodeMonkey(self.state_manager, self.ui, prev_response=prev_response)
             if prev_response.type == ResponseType.INPUT_REQUIRED:
-                # FIXME: HumanInput should be on the whole time and intercept chat/interrupt
                 return HumanInput(self.state_manager, self.ui, prev_response=prev_response)
             if prev_response.type == ResponseType.TASK_REVIEW_FEEDBACK:
                 return Developer(self.state_manager, self.ui, prev_response=prev_response)
@@ -183,60 +172,43 @@ class Orchestrator(BaseAgent):
 
         if not state.specification.description:
             if state.files:
-                # The project has been imported, but not analyzed yet
                 return Importer(self.state_manager, self.ui)
             else:
-                # New project: ask the Spec Writer to refine and save the project specification
                 return SpecWriter(self.state_manager, self.ui, process_manager=self.process_manager)
         elif not state.specification.architecture:
-            # Ask the Architect to design the project architecture and determine dependencies
             return Architect(self.state_manager, self.ui, process_manager=self.process_manager)
         elif (
             not state.epics
             or not self.current_state.unfinished_tasks
             or (state.specification.templates and not state.files)
         ):
-            # Ask the Tech Lead to break down the initial project or feature into tasks and apply project templates
             return TechLead(self.state_manager, self.ui, process_manager=self.process_manager)
 
         if state.current_task and state.docs is None and state.specification.complexity != Complexity.SIMPLE:
             return ExternalDocumentation(self.state_manager, self.ui)
 
-        # Current task status must be checked before Developer is called because we might want
-        # to skip it instead of breaking it down
         current_task_status = state.current_task.get("status") if state.current_task else None
         if current_task_status:
-            # Status of the current task is set first time after the task was reviewed by user
             log.info(f"Status of current task: {current_task_status}")
             if current_task_status == TaskStatus.REVIEWED:
-                # User reviewed the task, call TechnicalWriter to see if documentation needs to be updated
                 return TechnicalWriter(self.state_manager, self.ui)
             elif current_task_status == TaskStatus.DOCUMENTED:
-                # After documentation is done, call TechLead update the development plan (remaining tasks)
-                return TechLead(self.state_manager, self.ui)
+                return TechLead(self.state_manager, self.ui, process_manager=self.process_manager)
             elif current_task_status in [TaskStatus.EPIC_UPDATED, TaskStatus.SKIPPED]:
-                # Task is fully done or skipped, call TaskCompleter to mark it as completed
                 return TaskCompleter(self.state_manager, self.ui)
 
         if not state.steps and not state.iterations:
-            # Ask the Developer to break down current task into actionable steps
             return Developer(self.state_manager, self.ui)
 
         if state.current_step:
-            # Execute next step in the task
-            # TODO: this can be parallelized in the future
             return self.create_agent_for_step(state.current_step)
 
         if state.unfinished_iterations:
             if state.current_iteration["description"]:
-                # Break down the next iteration into steps
                 return Developer(self.state_manager, self.ui)
             else:
-                # We need to iterate over the current task but there's no solution, as Pythagora
-                # is stuck in a loop, and ProblemSolver needs to find alternative solutions.
                 return ProblemSolver(self.state_manager, self.ui)
 
-        # We have just finished the task, call Troubleshooter to ask the user to review
         return Troubleshooter(self.state_manager, self.ui)
 
     def create_agent_for_step(self, step: dict) -> BaseAgent:
@@ -270,11 +242,8 @@ class Orchestrator(BaseAgent):
                 input_required_files.append({"file": file.path, "line": line})
 
         if input_required_files:
-            # This will trigger the HumanInput agent to ask the user to provide the required changes
-            # If the user changes anything (removes the "required changes"), the file will be re-imported.
             return AgentResponse.input_required(self, input_required_files)
 
-        # Commit the newly imported file
         log.debug(f"Committing imported/removed files as a separate step {self.current_state.step_index}")
         await self.state_manager.commit()
         return None
@@ -286,7 +255,6 @@ class Orchestrator(BaseAgent):
         if self.current_state.epics:
             await self.ui.send_project_stage(ProjectStage.CODING)
             if len(self.current_state.epics) > 2:
-                # We only want to send previous features, ie. exclude current one and the initial project (first epic)
                 await self.ui.send_features_list([e["description"] for e in self.current_state.epics[1:-1]])
 
         elif self.current_state.specification.description:

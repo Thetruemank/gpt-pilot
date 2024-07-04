@@ -88,6 +88,9 @@ class BaseAgent:
         :param initial_text: Initial text input.
         :return: User response.
         """
+        # Minimize unnecessary text in the question
+        question = question.strip()
+
         response = await self.ui.ask_question(
             question,
             buttons=buttons,

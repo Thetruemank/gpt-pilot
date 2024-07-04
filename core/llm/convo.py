@@ -166,5 +166,30 @@ class Convo:
     def __repr__(self) -> str:
         return f"<Convo({self.messages})>"
 
+    def summarize(self) -> str:
+        """
+        Summarize the conversation to reduce token usage.
 
-__all__ = ["Convo"]
+        :return: A summary of the conversation.
+        """
+        summary = []
+        for message in self.messages:
+            role = message["role"]
+            content = message["content"]
+            summary.append(f"{role}: {content[:50]}...")  # Limit content to 50 characters
+        return "\n".join(summary)
+
+    def batch_messages(self, batch_size: int) -> list["Convo"]:
+        """
+        Batch messages to reduce token usage.
+
+        :param batch_size: Number of messages per batch.
+        :return: A list of batched conversations.
+        """
+        batches = []
+        for i in range(0, len(self.messages), batch_size):
+            batch = Convo()
+            batch.messages = deepcopy(self.messages[i:i + batch_size])
+            batch.prompt_log = deepcopy(self.prompt_log)
+            batches.append(batch)
+        return batches
