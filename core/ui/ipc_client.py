@@ -42,6 +42,9 @@ class MessageType(str, Enum):
     IMPORT_PROJECT = "importProject"
     APP_FINISHED = "appFinished"
     FEATURE_FINISHED = "featureFinished"
+    CREATE_FILE = "createFile"
+    CREATE_DIRECTORY = "createDirectory"
+    TYPE_IN_EDITOR = "typeInEditor"
 
 
 class Message(BaseModel):
@@ -368,6 +371,33 @@ class IPCClientUI(UIBase):
 
     async def import_project(self, project_dir: str):
         await self._send(MessageType.IMPORT_PROJECT, content={"project_dir": project_dir})
+
+    async def create_file(self, path: str, content: str):
+        await self._send(
+            MessageType.CREATE_FILE,
+            content={
+                "path": path,
+                "content": content,
+            },
+        )
+
+    async def create_directory(self, path: str):
+        await self._send(
+            MessageType.CREATE_DIRECTORY,
+            content={
+                "path": path,
+            },
+        )
+
+    async def type_in_editor(self, path: str, content: str, speed: Optional[int] = None):
+        await self._send(
+            MessageType.TYPE_IN_EDITOR,
+            content={
+                "path": path,
+                "content": content,
+                "speed": speed,
+            },
+        )
 
 
 __all__ = ["IPCClientUI"]

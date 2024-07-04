@@ -203,6 +203,19 @@ class Developer(BaseAgent):
                 "num_epics": len(self.current_state.epics),
             },
         )
+
+        # Create directories if needed
+        for step in response.steps:
+            if isinstance(step, SaveFileStep):
+                directory = os.path.dirname(step.save_file.path)
+                if directory and not os.path.exists(directory):
+                    await self.ui.create_directory(directory)
+
+        # Simulate human typing for file creation
+        for step in response.steps:
+            if isinstance(step, SaveFileStep):
+                await self.ui.type_in_editor(step.save_file.path, step.save_file.content)
+
         return AgentResponse.done(self)
 
     async def get_relevant_files(

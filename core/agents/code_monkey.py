@@ -85,6 +85,12 @@ class CodeMonkey(BaseAgent):
 
         response: str = await llm(convo, temperature=0, parser=OptionalCodeBlockParser())
         # FIXME: provide a counter here so that we don't have an endless loop here
+
+        if not current_file:
+            await self.ui.create_file(file_name, response)
+        else:
+            await self.ui.type_in_editor(file_name, response)
+
         return AgentResponse.code_review(self, file_name, task["instructions"], file_content, response, attempt)
 
     async def describe_files(self) -> AgentResponse:
