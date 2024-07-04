@@ -96,6 +96,7 @@ def parse_arguments() -> Namespace:
         --email: User's email address, if provided
         --extension-version: Version of the VSCode extension, if used
         --no-check: Disable initial LLM API check
+        --directory-path: Directory path for the newly imported project
     :return: Parsed arguments object.
     """
     version = get_version()
@@ -136,6 +137,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument("--email", help="User's email address", required=False)
     parser.add_argument("--extension-version", help="Version of the VSCode extension", required=False)
     parser.add_argument("--no-check", help="Disable initial LLM API check", action="store_true")
+    parser.add_argument("--directory-path", help="Directory path for the newly imported project", required=False)
     return parser.parse_args()
 
 
@@ -178,6 +180,9 @@ def load_config(args: Namespace) -> Optional[Config]:
             if provider not in config.llm:
                 config.llm[provider] = ProviderConfig()
             config.llm[provider].api_key = key
+
+    if args.directory_path:
+        config.directory_path = args.directory_path
 
     try:
         Config.model_validate(config)
