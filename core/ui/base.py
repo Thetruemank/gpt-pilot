@@ -304,6 +304,33 @@ class UIBase:
         """
         raise NotImplementedError()
 
+    async def create_file(self, path: str, content: str):
+        """
+        Create a new file in the UI.
+
+        :param path: Path of the new file.
+        :param content: Content of the new file.
+        """
+        raise NotImplementedError()
+
+    async def create_directory(self, path: str):
+        """
+        Create a new directory in the UI.
+
+        :param path: Path of the new directory.
+        """
+        raise NotImplementedError()
+
+    async def type_in_editor(self, path: str, content: str, speed: Optional[int] = None):
+        """
+        Simulate human typing in the editor.
+
+        :param path: Path of the file to type in.
+        :param content: Content to type.
+        :param speed: Typing speed (optional).
+        """
+        raise NotImplementedError()
+
 
 pythagora_source = UISource("Pythagora", "pythagora")
 success_source = UISource("Congratulations", "success")
