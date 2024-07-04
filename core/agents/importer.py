@@ -32,7 +32,7 @@ class Importer(BaseAgent):
         project_root = self.state_manager.get_full_project_root()
         await self.ui.import_project(project_root)
         await self.send_message(
-            f"This is experimental feature and is currently limited to projects with size up to {MAX_PROJECT_LINES} lines of code."
+            f"This is an experimental feature and is currently limited to projects with size up to {MAX_PROJECT_LINES} lines of code."
         )
 
         await self.ask_question(
@@ -49,7 +49,7 @@ class Importer(BaseAgent):
         imported_lines = sum(len(f.content.content.splitlines()) for f in imported_files)
         if imported_lines > MAX_PROJECT_LINES:
             await self.send_message(
-                "WARNING: Your project ({imported_lines} LOC) is larger than supported and may cause issues in Pythagora."
+                f"WARNING: Your project ({imported_lines} LOC) is larger than supported and may cause issues in Pythagora."
             )
         await self.state_manager.commit()
 

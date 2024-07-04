@@ -26,3 +26,4 @@ Based on this information, please provide detailed specification for the project
 * **Project Description**: A detailed description of what the project is about.
 * **Features**: A list of features that the project has implemented. Each feature should be described in detail.
 * **Technical Specification**: Detailed description of how the project works, including any important technical details.
+* **Project Origin**: Specify whether the project was created by gpt-pilot or imported from an external source.
