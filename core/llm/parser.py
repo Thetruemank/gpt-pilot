@@ -43,6 +43,19 @@ class MultiCodeBlockParser:
             blocks.append(block[1].strip())
         return blocks
 
+    def summarize(self, text: str) -> str:
+        """
+        Summarize the parsed content to reduce token usage.
+
+        :param text: Text to summarize.
+        :return: Summarized text.
+        """
+        blocks = self.__call__(text)
+        summary = []
+        for block in blocks:
+            summary.append(block[:50])  # Limit content to 50 characters
+        return "\n".join(summary)
+
 
 class CodeBlockParser(MultiCodeBlockParser):
     """
@@ -68,6 +81,16 @@ class CodeBlockParser(MultiCodeBlockParser):
             raise ValueError(f"Expected a single code block, got {len(blocks)}")
         return blocks[0]
 
+    def summarize(self, text: str) -> str:
+        """
+        Summarize the parsed content to reduce token usage.
+
+        :param text: Text to summarize.
+        :return: Summarized text.
+        """
+        block = self.__call__(text)
+        return block[:50]  # Limit content to 50 characters
+
 
 class OptionalCodeBlockParser:
     def __call__(self, text: str) -> str:
@@ -80,6 +103,15 @@ class OptionalCodeBlockParser:
             # Single-line code blocks are wrapped in single backticks
             text = text[1:-1]
         return text
+
+    def summarize(self, text: str) -> str:
+        """
+        Summarize the parsed content to reduce token usage.
+
+        :param text: Text to summarize.
+        :return: Summarized text.
+        """
+        return text[:50]  # Limit content to 50 characters
 
 
 class JSONParser:
@@ -132,6 +164,19 @@ class JSONParser:
 
         return model
 
+    def summarize(self, text: str) -> str:
+        """
+        Summarize the parsed content to reduce token usage.
+
+        :param text: Text to summarize.
+        :return: Summarized text.
+        """
+        data = self.__call__(text)
+        if isinstance(data, dict):
+            summary = {k: str(v)[:50] for k, v in data.items()}  # Limit values to 50 characters
+            return json.dumps(summary)
+        return str(data)[:50]  # Limit content to 50 characters
+
 
 class EnumParser:
     def __init__(self, spec: Enum, ignore_case: bool = True):
@@ -148,6 +193,15 @@ class EnumParser:
             options = ", ".join([str(v) for v in self.spec])
             raise ValueError(f"Invalid option '{text}'; valid options: {options}") from e
 
+    def summarize(self, text: str) -> str:
+        """
+        Summarize the parsed content to reduce token usage.
+
+        :param text: Text to summarize.
+        :return: Summarized text.
+        """
+        return text[:50]  # Limit content to 50 characters
+
 
 class StringParser:
     def __call__(self, text: str) -> str:
@@ -161,3 +215,12 @@ class StringParser:
                 text = text[1:-1]
 
         return text
+
+    def summarize(self, text: str) -> str:
+        """
+        Summarize the parsed content to reduce token usage.
+
+        :param text: Text to summarize.
+        :return: Summarized text.
+        """
+        return text[:50]  # Limit content to 50 characters

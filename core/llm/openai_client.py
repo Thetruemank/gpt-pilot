@@ -36,38 +36,44 @@ class OpenAIClient(BaseLLMClient):
         temperature: Optional[float] = None,
         json_mode: bool = False,
     ) -> tuple[str, int, int]:
-        completion_kwargs = {
-            "model": self.config.model,
-            "messages": convo.messages,
-            "temperature": self.config.temperature if temperature is None else temperature,
-            "stream": True,
-        }
-        if self.stream_options:
-            completion_kwargs["stream_options"] = self.stream_options
+        # Summarize and batch requests to reduce token usage
+        convo_summary = convo.summarize()
+        convo_batches = convo.batch_messages(batch_size=5)
 
-        if json_mode:
-            completion_kwargs["response_format"] = {"type": "json_object"}
-
-        stream = await self.client.chat.completions.create(**completion_kwargs)
         response = []
         prompt_tokens = 0
         completion_tokens = 0
 
-        async for chunk in stream:
-            if chunk.usage:
-                prompt_tokens += chunk.usage.prompt_tokens
-                completion_tokens += chunk.usage.completion_tokens
+        for batch in convo_batches:
+            completion_kwargs = {
+                "model": self.config.model,
+                "messages": batch.messages,
+                "temperature": self.config.temperature if temperature is None else temperature,
+                "stream": True,
+            }
+            if self.stream_options:
+                completion_kwargs["stream_options"] = self.stream_options
 
-            if not chunk.choices:
-                continue
+            if json_mode:
+                completion_kwargs["response_format"] = {"type": "json_object"}
 
-            content = chunk.choices[0].delta.content
-            if not content:
-                continue
+            stream = await self.client.chat.completions.create(**completion_kwargs)
 
-            response.append(content)
-            if self.stream_handler:
-                await self.stream_handler(content)
+            async for chunk in stream:
+                if chunk.usage:
+                    prompt_tokens += chunk.usage.prompt_tokens
+                    completion_tokens += chunk.usage.completion_tokens
+
+                if not chunk.choices:
+                    continue
+
+                content = chunk.choices[0].delta.content
+                if not content:
+                    continue
+
+                response.append(content)
+                if self.stream_handler:
+                    await self.stream_handler(content)
 
         response_str = "".join(response)
 

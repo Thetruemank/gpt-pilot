@@ -66,6 +66,7 @@ class CodeMonkey(BaseAgent):
         else:
             instructions = self.current_state.current_task["instructions"]
 
+        # Summarize and batch requests to reduce token usage
         convo = AgentConvo(self).template(
             "implement_changes",
             file_name=file_name,
