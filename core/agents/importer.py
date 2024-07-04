@@ -35,8 +35,10 @@ class Importer(BaseAgent):
             f"This is an experimental feature and is currently limited to projects with size up to {MAX_PROJECT_LINES} lines of code."
         )
 
+        directory_path = await self.prompt_for_directory_path()
+
         await self.ask_question(
-            f"Please copy your project files to {project_root} and press Continue",
+            f"Please copy your project files to {directory_path} and press Continue",
             allow_empty=False,
             buttons={
                 "continue": "Continue",
@@ -52,6 +54,13 @@ class Importer(BaseAgent):
                 f"WARNING: Your project ({imported_lines} LOC) is larger than supported and may cause issues in Pythagora."
             )
         await self.state_manager.commit()
+
+    async def prompt_for_directory_path(self) -> str:
+        user_input = await self.ask_question(
+            "Please enter the directory path for the newly imported project:",
+            allow_empty=False,
+        )
+        return user_input.text
 
     async def analyze_project(self):
         llm = self.get_llm()

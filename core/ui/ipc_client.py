@@ -369,5 +369,12 @@ class IPCClientUI(UIBase):
     async def import_project(self, project_dir: str):
         await self._send(MessageType.IMPORT_PROJECT, content={"project_dir": project_dir})
 
+    async def prompt_for_directory_path(self) -> str:
+        user_input = await self.ask_question(
+            "Please enter the directory path for the newly imported project:",
+            allow_empty=False,
+        )
+        return user_input.text
+
 
 __all__ = ["IPCClientUI"]

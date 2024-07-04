@@ -304,6 +304,18 @@ class UIBase:
         """
         raise NotImplementedError()
 
+    async def prompt_for_directory_path(self) -> str:
+        """
+        Prompt the user to enter the directory path for the newly imported project.
+
+        :return: Directory path entered by the user.
+        """
+        user_input = await self.ask_question(
+            "Please enter the directory path for the newly imported project:",
+            allow_empty=False,
+        )
+        return user_input.text
+
 
 pythagora_source = UISource("Pythagora", "pythagora")
 success_source = UISource("Congratulations", "success")

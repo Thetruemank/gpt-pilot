@@ -163,6 +163,9 @@ async def run_pythagora_session(sm: StateManager, ui: UIBase, args: Namespace):
         if not success:
             return False
 
+    if args.directory_path:
+        sm.config.directory_path = args.directory_path
+
     return await run_project(sm, ui)
 
 
